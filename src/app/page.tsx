@@ -1,101 +1,170 @@
+"use client";
+import { useEffect, useRef, useState } from "react";
+import axios from "axios";
+import { PaperPlaneIcon } from "@radix-ui/react-icons";
+import { ThreeDots } from "react-loading-icons";
 import Image from "next/image";
+import Typed from "typed.js";
+
+interface Message {
+  text: string;
+  sender: "user" | "bot";
+  img: string;
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      text: "Hello, I’m ClickyBot! 👋 I’m your personal chatbot assistant. How can I help you?",
+      sender: "bot",
+      img: "/assets/botlogo.png",
+    },
+  ]);
+  const [input, setInput] = useState("");
+  const latestMessageRef = useRef<HTMLSpanElement | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+  // Function to send a message
+
+  const toggleChatbot = () => {
+    setIsOpen(!isOpen);
+  };
+
+  const sendMessage = async () => {
+    if (!input.trim()) return;
+
+    const userMessage = { text: input, sender: "user", img: "/assets/userLogo.png" };
+    setMessages((prev) => [...prev, userMessage]);
+
+    // Show a temporary bot message with loading
+    const tempBotMessage = {
+      text: "...",
+      sender: "bot",
+      img: "/assets/botlogo.png",
+    };
+    setMessages((prev) => [...prev, tempBotMessage]);
+
+    try {
+      const response = await axios.post("http://localhost:8000/query", { query: input });
+
+      // Replace the last bot message with actual response
+      setMessages((prev) => {
+        const updatedMessages = [...prev];
+        updatedMessages[updatedMessages.length - 1] = {
+          text: response.data.results,
+          sender: "bot",
+          img: "/assets/botlogo.png",
+        };
+        return updatedMessages;
+      });
+    } catch (error) {
+      console.error("Error fetching response:", error);
+      setMessages((prev) => {
+        const updatedMessages = [...prev];
+        updatedMessages[updatedMessages.length - 1] = {
+          text: "The server is busy, please try again.",
+          sender: "bot",
+          img: "/assets/error.png",
+        };
+        return updatedMessages;
+      });
+    }
+
+    setInput(""); // Clear input field
+  };
+
+  // Effect to run Typed.js animation on the latest bot message
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (latestMessageRef.current && lastMessage.sender === "bot" && lastMessage.text !== "...") {
+      const typed = new Typed(latestMessageRef.current, {
+        strings: [lastMessage.text],
+        typeSpeed: 10,
+        showCursor: false,
+      });
+      return () => typed.destroy();
+    }
+  }, [messages]);
+
+  return (
+    <div className="flex flex-col w-[400px] h-[600px] mx-auto border rounded-lg shadow-lg bg-white  fixed bottom-10 right-24">
+
+       <button
+        onClick={toggleChatbot}
+        className="fixed bottom-5 right-5 bg-blue-500 p-4 rounded-full shadow-lg hover:bg-blue-600 transition-all"
+      >
+        <Image src="/assets/chatbubble.png" alt="Chat" width={40} height={40} />
+      </button>
+      
+
+
+      <div className="bg-blue-100 p-4 text-blue-600 font-bold text-lg">ClickyBot</div>
+
+
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        {messages.map((msg, index) => {
+          const isLatestBotMessage = msg.sender === "bot" && index === messages.length - 1;
+
+          return (
+            <div
+              key={index}
+              className={`flex items-center space-x-3 ${
+                msg.sender === "user" ? "flex-row-reverse" : "flex-row"
+              }`}
+            >
+              <Image
+                className="w-10 h-10 rounded-full ml-1"
+                src={msg.img}
+                alt={msg.sender === "user" ? "User Avatar" : "Bot Logo"}
+                width={40}
+                height={40}
+              />
+
+              {/* Message Bubble */}
+              <div
+                className={`p-3 max-w-xs rounded-lg break-words whitespace-pre-wrap ${
+                  msg.sender === "user"
+                    ? "bg-blue-500 text-white"
+                    : "bg-blue-100 text-blue-900"
+                }`}
+              >
+                {isLatestBotMessage && msg.text === "..." ? (
+                  <ThreeDots width="30" height="10" fill="gray" />
+                ) : isLatestBotMessage ? (
+                  <span ref={latestMessageRef}></span>
+                ) : (
+                  msg.text
+                )}
+              </div>
+            </div>
+          );
+
+
+        })}
+
+      </div>
+
+      {/* Input Field */}
+
+      <div className="p-3 border-t flex items-center">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+          className="flex-1 p-2 border rounded-lg outline-none"
+          placeholder="Type a message..."
+        />
+        <button
+          onClick={sendMessage}
+          className="ml-2 bg-blue-500 text-white p-2 rounded-full"
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          <PaperPlaneIcon className="w-5 h-5" />
+        </button>
+      </div>
+
     </div>
   );
 }
