@@ -14,9 +14,11 @@ interface Message {
 
 export default function Home() {
   const [isOpen, setIsOpen] = useState(false);
+  const [imageSrc, setImageSrc] = useState("/assets/ChatLogo.png");
+  const [fade, setFade] = useState(true); // Control opacity transition
   const [messages, setMessages] = useState<Message[]>([
     {
-      text: "Hello, I’m ClickyBot! 👋 I’m your personal chatbot assistant. How can I help you?",
+      text: "Hello, I’m DC_Bot! 👋 I’m your personal chatbot assistant. How can I help you?",
       sender: "bot",
       img: "/assets/botlogo.png",
     },
@@ -27,7 +29,13 @@ export default function Home() {
   // Function to send a message
 
   const toggleChatbot = () => {
-    setIsOpen(!isOpen);
+    setFade(false); // Start fade-out effect
+
+    setTimeout(() => {
+      setImageSrc(isOpen ? "/assets/ChatLogo.png" : "/assets/CrossLogo.png");
+      setFade(true); // Start fade-in effect
+      setIsOpen(!isOpen);
+    }, 200); // Change image after fade-out duration
   };
 
   const sendMessage = async () => {
@@ -79,7 +87,7 @@ export default function Home() {
     if (latestMessageRef.current && lastMessage.sender === "bot" && lastMessage.text !== "...") {
       const typed = new Typed(latestMessageRef.current, {
         strings: [lastMessage.text],
-        typeSpeed: 10,
+        typeSpeed: 5,
         showCursor: false,
       });
       return () => typed.destroy();
@@ -87,84 +95,89 @@ export default function Home() {
   }, [messages]);
 
   return (
-    <div className="flex flex-col w-[400px] h-[600px] mx-auto border rounded-lg shadow-lg bg-white  fixed bottom-10 right-24">
+    <div>
 
-       <button
-        onClick={toggleChatbot}
-        className="fixed bottom-5 right-5 bg-blue-500 p-4 rounded-full shadow-lg hover:bg-blue-600 transition-all"
-      >
-        <Image src="/assets/chatbubble.png" alt="Chat" width={40} height={40} />
-      </button>
+<button
+          onClick={toggleChatbot}
+          className="fixed bottom-5 right-5 bg-blue-500 p-3 rounded-full shadow-lg hover:bg-blue-600 transition-all"
+        >
+          <div className={`transition-opacity duration-200 ${fade ? "opacity-100" : "opacity-0"}`}>
+            <Image src={imageSrc} alt="Chat" width={40} height={40} />
+          </div>
+        </button>
+      <div className={`  flex flex-col md:w-[400px] w-[280px] h-[450px] md:h-[600px]  mx-auto border rounded-lg shadow-lg bg-white  fixed bottom-24 right-6 md:bottom-10 md:right-24  transition-all duration-300 transform  ${isOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5 pointer-events-none"}`}>
+
       
+     
 
 
-      <div className="bg-blue-100 p-4 text-blue-600 font-bold text-lg">ClickyBot</div>
+        <div className="bg-blue-100 p-4 text-blue-600 font-bold text-lg">DC_Bot</div>
 
 
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        {messages.map((msg, index) => {
-          const isLatestBotMessage = msg.sender === "bot" && index === messages.length - 1;
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          {messages.map((msg, index) => {
+            const isLatestBotMessage = msg.sender === "bot" && index === messages.length - 1;
 
-          return (
-            <div
-              key={index}
-              className={`flex items-center space-x-3 ${
-                msg.sender === "user" ? "flex-row-reverse" : "flex-row"
-              }`}
-            >
-              <Image
-                className="w-10 h-10 rounded-full ml-1"
-                src={msg.img}
-                alt={msg.sender === "user" ? "User Avatar" : "Bot Logo"}
-                width={40}
-                height={40}
-              />
-
-              {/* Message Bubble */}
+            return (
               <div
-                className={`p-3 max-w-xs rounded-lg break-words whitespace-pre-wrap ${
-                  msg.sender === "user"
+                key={index}
+                className={`flex items-center space-x-3 ${msg.sender === "user" ? "flex-row-reverse" : "flex-row"
+                  }`}
+              >
+                <Image
+                  className="w-10 h-10 rounded-full ml-1"
+                  src={msg.img}
+                  alt={msg.sender === "user" ? "User Avatar" : "Bot Logo"}
+                  width={40}
+                  height={40}
+                />
+
+                {/* Message Bubble */}
+                <div
+                  className={`p-3 max-w-xs rounded-lg break-words whitespace-pre-wrap ${msg.sender === "user"
                     ? "bg-blue-500 text-white"
                     : "bg-blue-100 text-blue-900"
-                }`}
-              >
-                {isLatestBotMessage && msg.text === "..." ? (
-                  <ThreeDots width="30" height="10" fill="gray" />
-                ) : isLatestBotMessage ? (
-                  <span ref={latestMessageRef}></span>
-                ) : (
-                  msg.text
-                )}
+                    }`}
+                >
+                  {isLatestBotMessage && msg.text === "..." ? (
+                    <ThreeDots width="30" height="10" fill="gray" />
+                  ) : isLatestBotMessage ? (
+                    <span ref={latestMessageRef}></span>
+                  ) : (
+                    msg.text
+                  )}
+                </div>
               </div>
-            </div>
-          );
+            );
 
 
-        })}
+          })}
+
+        </div>
+
+        {/* Input Field */}
+
+        <div className="p-3 border-t flex items-center">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+            className="flex-1 p-2 border rounded-lg outline-none"
+            placeholder="Type a message..."
+          />
+          <button
+            onClick={sendMessage}
+            className="ml-2 bg-blue-500 text-white p-2 rounded-full"
+          >
+            <PaperPlaneIcon className="w-5 h-5" />
+          </button>
+        </div>
 
       </div>
 
-      {/* Input Field */}
-
-      <div className="p-3 border-t flex items-center">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-          className="flex-1 p-2 border rounded-lg outline-none"
-          placeholder="Type a message..."
-        />
-        <button
-          onClick={sendMessage}
-          className="ml-2 bg-blue-500 text-white p-2 rounded-full"
-        >
-          <PaperPlaneIcon className="w-5 h-5" />
-        </button>
-      </div>
-
-    </div>
-  );
+      </div >
+      );
 }
